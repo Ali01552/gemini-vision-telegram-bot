@@ -6,10 +6,13 @@ import google.generativeai as genai
 from telegram import Bot, InputFile
 import asyncio
 
-bot_toket="7794858783:AAGdP2oj07yKKO_m7U-PIh1Xhqk9tkDg9Oc" #https://t.me/examans_bot
-chatid = "925806803" #personal 
-#chatid = '-1002270992891'
+# --- Environment Variables ---
+bot_toket = os.getenv("TELEGRAM_BOT_TOKEN") 
+chatid = os.getenv("TELEGRAM_CHAT_ID")
 
+if not bot_toket or not chatid:
+    print("Error: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID environment variables must be set.")
+    sys.exit(1)
 
 async def send_telegram_message(message, image_path=None):
     try:
@@ -19,16 +22,15 @@ async def send_telegram_message(message, image_path=None):
                 await bot.send_photo(chat_id=chatid, photo=InputFile(f), caption=message)
         else:
             await bot.send_message(chat_id=chatid, text=message)
-        #print("Sent result to your phone via Telegram.")
     except Exception as e:
         print("Failed to send Telegram message:", e)
 
-
-
-
-
 # === CONFIGURATION ===
-API_KEY = "AIzaSyBgb9e8bYWntTsdIahCIh-Si06b5sSGdTU"  # Replace with your actual Gemini API key
+API_KEY = os.getenv("GEMINI_API_KEY") 
+if not API_KEY:
+    print("Error: GEMINI_API_KEY environment variable must be set.")
+    sys.exit(1)
+
 MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "gemini-2.0-flash"
 SCREENSHOT_PATH = os.path.expanduser("~/Screenshots/gemini_screenshot.png")
 OUTPUT_DIR = os.path.dirname(SCREENSHOT_PATH)
@@ -45,7 +47,6 @@ def take_screenshot():
         return SCREENSHOT_PATH
     except subprocess.CalledProcessError as e:
         asyncio.run(send_telegram_message(f"Failed to take screenshot with grim: {e}"))
-        #print("Failed to take screenshot with grim:", e)
         sys.exit(1)
 
 def ask_gemini_vision(image_path):
@@ -73,19 +74,10 @@ def ask_gemini_vision(image_path):
         return f"Error with Gemini: {e}"
 
 def main():
-    # Step 1: Take screenshot with grim
     image_path = take_screenshot()
-
-    # Step 2: Send to Gemini AI
-    #print("Sending image to Gemini...")
     result = ask_gemini_vision(image_path)
-
-    # Step 3: Output result
-    #print("\nGemini Response:\n", result)
     message_to_send = f'{MODEL_NAME}\n{result}'
-    #asyncio.run(send_telegram_message(message_to_send, image_path))
     asyncio.run(send_telegram_message(message_to_send))
-
 
 if __name__ == "__main__":
     main()
